@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EKS Cluster Configuration Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #130C49 0%, #61D384 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #61d384;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        .form-section {
+            padding: 40px;
+            background: #f8f9fa;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+
+        .output-section {
+            padding: 40px;
+            background: #1e1e1e;
+            color: #f8f8f2;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #232f3e;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #F9F15D;
+            box-shadow: 0 0 0 3px rgba(255, 154, 86, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #232f3e;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #85E3BC;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #130C49 0%, #61D384 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 154, 86, 0.3);
+        }
+
+        .btn-aws {
+            background: linear-gradient(135deg, #ff9900, #ffbb33);
+            color: #232f3e;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .output-header h3 {
+            color: #f8f8f2;
+            font-size: 1.3rem;
+        }
+
+        .template-selector {
+            margin-bottom: 20px;
+        }
+
+        .template-selector select {
+            background: #2c3e50;
+            color: white;
+            border: 1px solid #34495e;
+            padding: 10px 15px;
+            border-radius: 6px;
+        }
+
+        #yamlOutput {
+            background: #2c3e50;
+            border: 1px solid #34495e;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            min-height: 400px;
+            color: #f8f8f2;
+        }
+
+        .labels-input {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .label-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .label-row input {
+            margin: 0;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .add-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row, .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>EKS Cluster Generator</h1>
+            <p>Use the generator to create your EKS configuration.</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="form-section">
+                <div class="section-title">🏢 Cluster Configuration</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clusterName">Cluster Name</label>
+                        <input type="text" id="clusterName" value="my-eks-cluster" placeholder="my-eks-cluster">
+                    </div>
+                    <div class="form-group">
+                        <label for="awsRegion">AWS Region</label>
+                        <select id="awsRegion">
+                            <option value="us-east-1"selected>US East (N. Virginia)</option>
+                            <option value="us-east-2">US East (Ohio)</option>
+                            <option value="us-west-1">US West (N. California)</option>
+                            <option value="us-west-2">US West (Oregon)</option>
+                            <option value="eu-west-1">Europe (Ireland)</option>
+                            <option value="eu-central-1">Europe (Frankfurt)</option>
+                            <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                            <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-title"> Managed Node Group</div>
+                
+                <div class="form-group">
+                    <label for="nodeGroupName">Node Group Name</label>
+                    <input type="text" id="nodeGroupName" value="standard-workers" placeholder="standard-workers">
+                </div>
+
+                <div class="form-group">
+                    <label for="instanceType">Instance Type</label>
+                    <select id="instanceType">
+                        <option value="t3.micro">t3.micro (1 vCPU, 1 GB RAM)</option>
+                        <option value="t3.small">t3.small (2 vCPU, 2 GB RAM)</option>
+                        <option value="t3.medium" selected>t3.medium (2 vCPU, 4 GB RAM)</option>
+                        <option value="t3.large">t3.large (2 vCPU, 8 GB RAM)</option>
+                        <option value="t3.xlarge">t3.xlarge (4 vCPU, 16 GB RAM)</option>
+                        <option value="m5.large">m5.large (2 vCPU, 8 GB RAM)</option>
+                        <option value="m5.xlarge">m5.xlarge (4 vCPU, 16 GB RAM)</option>
+                        <option value="m5.2xlarge">m5.2xlarge (8 vCPU, 32 GB RAM)</option>
+                        <option value="c5.large">c5.large (2 vCPU, 4 GB RAM)</option>
+                        <option value="c5.xlarge">c5.xlarge (4 vCPU, 8 GB RAM)</option>
+                    </select>
+                </div>
+
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label for="desiredCapacity">Desired Capacity</label>
+                        <input type="number" id="desiredCapacity" value="3" min="1" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="minSize">Min Size</label>
+                        <input type="number" id="minSize" value="1" min="0" max="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxSize">Max Size</label>
+                        <input type="number" id="maxSize" value="6" min="1" max="50">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="volumeSize">Volume Size (GB)</label>
+                        <input type="number" id="volumeSize" value="20" min="8" max="500">
+                    </div>
+                    <div class="form-group">
+                        <label for="volumeType">Volume Type</label>
+                        <select id="volumeType">
+                            <option value="gp3" selected>gp3 (General Purpose SSD)</option>
+                            <option value="gp2">gp2 (General Purpose SSD)</option>
+                            <option value="io1">io1 (Provisioned IOPS SSD)</option>
+                            <option value="io2">io2 (Provisioned IOPS SSD)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="privateNetworking" checked>
+                        <label for="privateNetworking">Private Networking (recommended)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Node Group Labels (optional)</label>
+                    <div class="labels-input">
+                        <div id="nodeLabels">
+                            <div class="label-row">
+                                <input type="text" placeholder="Key" value="environment">
+                                <input type="text" placeholder="Value" value="production">
+                                <button type="button" class="remove-btn" onclick="removeLabel(this)">Remove</button>
+                            </div>
+                        </div>
+                        <button type="button" class="add-btn" onclick="addLabel()">+ Add Label</button>
+                    </div>
+                </div>
+
+                <div class="section-title">🔧 Add-ons Configuration</div>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableVpcCni" checked>
+                        <label for="enableVpcCni">VPC CNI (latest version)</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableCoreDns" checked>
+                        <label for="enableCoreDns">CoreDNS</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableKubeProxy" checked>
+                        <label for="enableKubeProxy">Kube Proxy</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableEbsCsi" checked>
+                        <label for="enableEbsCsi">AWS EBS CSI Driver</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <button class="btn" onclick="generateConfig()">Generate EKS Config</button>
+                    <button class="btn btn-aws" onclick="downloadConfig()">Download Files</button>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <div class="output-header">
+                    <h3>📄 Generated Configuration</h3>
+                    <div class="template-selector">
+                        <select id="templateType" onchange="generateConfig()">
+                            <option value="eksctl">eksctl Configuration</option>
+                            <option value="storage-class">Storage Class</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="yamlOutput">Click "Generate EKS Config" to see your cluster configuration...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addLabel() {
+            const labelsContainer = document.getElementById('nodeLabels');
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'label-row';
+            labelDiv.innerHTML = `
+                <input type="text" placeholder="Key">
+                <input type="text" placeholder="Value">
+                <button type="button" class="remove-btn" onclick="removeLabel(this)">Remove</button>
+            `;
+            labelsContainer.appendChild(labelDiv);
+        }
+
+        function removeLabel(button) {
+            button.parentElement.remove();
+        }
+
+        function getLabels() {
+            const labels = {};
+            const labelElements = document.querySelectorAll('.label-row');
+            labelElements.forEach(element => {
+                const inputs = element.querySelectorAll('input');
+                const key = inputs[0].value.trim();
+                const value = inputs[1].value.trim();
+                if (key && value) {
+                    labels[key] = value;
+                }
+            });
+            return labels;
+        }
+
+        //  eksctl configuration
+        function generateEksctlConfig(data) {
+            const labelsYaml = Object.keys(data.labels).length > 0 ? 
+                '\n      labels:\n' + Object.entries(data.labels).map(([key, value]) => 
+                    `        ${key}: ${value}`
+                ).join('\n') : '';
+
+            const addonsYaml = [];
+            if (data.addons.vpcCni) {
+                addonsYaml.push(`  - name: vpc-cni
+    version: latest
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy`);
+            }
+            if (data.addons.coreDns) {
+                addonsYaml.push(`  - name: coredns
+    version: latest`);
+            }
+            if (data.addons.kubeProxy) {
+                addonsYaml.push(`  - name: kube-proxy
+    version: latest`);
+            }
+            if (data.addons.ebsCsi) {
+                addonsYaml.push(`  - name: aws-ebs-csi-driver
+    version: latest
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy`);
+            }
+
+            const addonsSection = addonsYaml.length > 0 ? 
+                '\naddOns:\n' + addonsYaml.join('\n') : '';
+
+            return `apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: ${data.clusterName}
+  region: ${data.awsRegion}
+
+nodeGroups:
+  - name: ${data.nodeGroupName}
+    instanceType: ${data.instanceType}
+    desiredCapacity: ${data.desiredCapacity}
+    minSize: ${data.minSize}
+    maxSize: ${data.maxSize}
+    privateNetworking: ${data.privateNetworking}
+    volumeSize: ${data.volumeSize}
+    volumeType: ${data.volumeType}${labelsYaml}
+    
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        externalDNS: true
+        certManager: true
+        awsLoadBalancerController: true
+        ebs: true
+        efs: true
+        cloudWatch: true${addonsSection}
+
+# Managed policies for the cluster
+managedNodeGroups:
+  - name: ${data.nodeGroupName}
+    instanceType: ${data.instanceType}
+    desiredCapacity: ${data.desiredCapacity}
+    minSize: ${data.minSize}
+    maxSize: ${data.maxSize}
+    privateNetworking: ${data.privateNetworking}
+    volumeSize: ${data.volumeSize}
+    volumeType: ${data.volumeType}
+    releaseVersion: ""
+    ami: auto
+    amiFamily: AmazonLinux2${labelsYaml}
+    tags:
+      Environment: production
+      ManagedBy: eksctl
+      NodeGroup: ${data.nodeGroupName}
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore`;
+        }
+
+        // storage class configuration
+        function generateStorageClass(data) {
+            return `# Storage Class for EBS volumes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-storage
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+---
+# Additional storage class for high-performance workloads
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3-high-performance
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "16000"
+  throughput: "1000"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+
+---
+# Storage class for io1 volumes (high IOPS)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: io1-storage
+provisioner: ebs.csi.aws.com
+parameters:
+  type: io1
+  iops: "10000"
+  encrypted: "true"
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete`;
+        }
+
+
+        //  generation function
+        function generateConfig() {
+            const data = {
+                clusterName: document.getElementById('clusterName').value || 'my-eks-cluster',
+                awsRegion: document.getElementById('awsRegion').value,
+                nodeGroupName: document.getElementById('nodeGroupName').value || 'standard-workers',
+                instanceType: document.getElementById('instanceType').value,
+                desiredCapacity: parseInt(document.getElementById('desiredCapacity').value) || 3,
+                minSize: parseInt(document.getElementById('minSize').value) || 1,
+                maxSize: parseInt(document.getElementById('maxSize').value) || 6,
+                privateNetworking: document.getElementById('privateNetworking').checked,
+                volumeSize: parseInt(document.getElementById('volumeSize').value) || 20,
+                volumeType: document.getElementById('volumeType').value,
+                labels: getLabels(),
+                addons: {
+                    vpcCni: document.getElementById('enableVpcCni').checked,
+                    coreDns: document.getElementById('enableCoreDns').checked,
+                    kubeProxy: document.getElementById('enableKubeProxy').checked,
+                    ebsCsi: document.getElementById('enableEbsCsi').checked
+                }
+            };
+
+            const templateType = document.getElementById('templateType').value;
+            let output = '';
+
+            switch (templateType) {
+                case 'eksctl':
+                    output = generateEksctlConfig(data);
+                    break;
+                case 'storage-class':
+                    output = generateStorageClass(data);
+                    break;
+                case 'commands':
+                    output = generateCommands(data);
+                    break;
+            }
+
+            document.getElementById('yamlOutput').textContent = output;
+        }
+
+        // Download 
+        function downloadConfig() {
+            const clusterName = document.getElementById('clusterName').value || 'my-eks-cluster';
+            const templateType = document.getElementById('templateType').value;
+            
+            //  all configurations
+            const data = {
+                clusterName: clusterName,
+                awsRegion: document.getElementById('awsRegion').value,
+                nodeGroupName: document.getElementById('nodeGroupName').value || 'standard-workers',
+                instanceType: document.getElementById('instanceType').value,
+                desiredCapacity: parseInt(document.getElementById('desiredCapacity').value) || 3,
+                minSize: parseInt(document.getElementById('minSize').value) || 1,
+                maxSize: parseInt(document.getElementById('maxSize').value) || 6,
+                privateNetworking: document.getElementById('privateNetworking').checked,
+                volumeSize: parseInt(document.getElementById('volumeSize').value) || 20,
+                volumeType: document.getElementById('volumeType').value,
+                labels: getLabels(),
+                addons: {
+                    vpcCni: document.getElementById('enableVpcCni').checked,
+                    coreDns: document.getElementById('enableCoreDns').checked,
+                    kubeProxy: document.getElementById('enableKubeProxy').checked,
+                    ebsCsi: document.getElementById('enableEbsCsi').checked
+                }
+            };
+
+            // Download
+            const files = [
+                {
+                    name: `${clusterName}-config.yaml`,
+                    content: generateEksctlConfig(data)
+                },
+                {
+                    name: 'storage-classes.yaml',
+                    content: generateStorageClass(data)
+                },
+                {
+                    name: 'deployment-commands.sh',
+                    content: generateCommands(data)
+                }
+            ];
+
+            files.forEach(file => {
+                const blob = new Blob([file.content], { type: file.name.endsWith('.sh') ? 'text/plain' : 'text/yaml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        //  initial configuration
+        generateConfig();
+    </script>
+</body>
+</html>

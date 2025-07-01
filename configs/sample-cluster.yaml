@@ -1,0 +1,22 @@
+cluster:
+  name: "my-eks-cluster"
+  region: "us-west-2"
+
+nodeGroup:
+  name: "standard-workers"
+  instanceType: "t3.medium"
+  desiredCapacity: 3
+  minSize: 1
+  maxSize: 6
+  privateNetworking: true
+  volumeSize: 20
+  volumeType: "gp3"
+  labels:
+    environment: "production"
+    team: "platform"
+
+addons:
+  vpcCni: true
+  coreDns: true
+  kubeProxy: true
+  ebsCsi: true

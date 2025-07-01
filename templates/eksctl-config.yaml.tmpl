@@ -1,0 +1,56 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: {{ .cluster.name }}
+  region: {{ .cluster.region }}
+
+managedNodeGroups:
+  - name: {{ .nodeGroup.name }}
+    instanceType: {{ .nodeGroup.instanceType }}
+    desiredCapacity: {{ .nodeGroup.desiredCapacity }}
+    minSize: {{ .nodeGroup.minSize }}
+    maxSize: {{ .nodeGroup.maxSize }}
+    privateNetworking: {{ .nodeGroup.privateNetworking }}
+    volumeSize: {{ .nodeGroup.volumeSize }}
+    volumeType: {{ .nodeGroup.volumeType }}
+    {{- if .nodeGroup.labels }}
+    labels:
+      {{- range $key, $value := .nodeGroup.labels }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+    {{- end }}
+    tags:
+      Environment: production
+      ManagedBy: eksctl
+      NodeGroup: {{ .nodeGroup.name }}
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+{{- if or .addons.vpcCni .addons.coreDns .addons.kubeProxy .addons.ebsCsi }}
+addOns:
+{{- if .addons.vpcCni }}
+  - name: vpc-cni
+    version: latest
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+{{- end }}
+{{- if .addons.coreDns }}
+  - name: coredns
+    version: latest
+{{- end }}
+{{- if .addons.kubeProxy }}
+  - name: kube-proxy
+    version: latest
+{{- end }}
+{{- if .addons.ebsCsi }}
+  - name: aws-ebs-csi-driver
+    version: latest
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+{{- end }}
+{{- end }}
