@@ -92,7 +92,7 @@
         .form-group select:focus {
             outline: none;
             border-color: #F9F15D;
-            box-shadow: 0 0 0 3px rgba(255, 154, 86, 0.1);
+            box-shadow: 0 0 0 3px rgba(249, 241, 93, 0.1);
         }
 
         .form-row {
@@ -154,7 +154,7 @@
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 154, 86, 0.3);
+            box-shadow: 0 8px 25px rgba(97, 211, 132, 0.3);
         }
 
         .btn-aws {
@@ -269,7 +269,7 @@
                     <div class="form-group">
                         <label for="awsRegion">AWS Region</label>
                         <select id="awsRegion">
-                            <option value="us-east-1"selected>US East (N. Virginia)</option>
+                            <option value="us-east-1" selected>US East (N. Virginia)</option>
                             <option value="us-east-2">US East (Ohio)</option>
                             <option value="us-west-1">US West (N. California)</option>
                             <option value="us-west-2">US West (Oregon)</option>
@@ -281,7 +281,7 @@
                     </div>
                 </div>
 
-                <div class="section-title"> Managed Node Group</div>
+                <div class="section-title">⚙️ Managed Node Group</div>
                 
                 <div class="form-group">
                     <label for="nodeGroupName">Node Group Name</label>
@@ -408,6 +408,7 @@
     </div>
 
     <script>
+        // Label management functions
         function addLabel() {
             const labelsContainer = document.getElementById('nodeLabels');
             const labelDiv = document.createElement('div');
@@ -424,6 +425,7 @@
             button.parentElement.remove();
         }
 
+        // Get labels from form
         function getLabels() {
             const labels = {};
             const labelElements = document.querySelectorAll('.label-row');
@@ -438,7 +440,7 @@
             return labels;
         }
 
-        //  eksctl configuration
+        // Generate eksctl configuration
         function generateEksctlConfig(data) {
             const labelsYaml = Object.keys(data.labels).length > 0 ? 
                 '\n      labels:\n' + Object.entries(data.labels).map(([key, value]) => 
@@ -477,28 +479,6 @@ metadata:
   name: ${data.clusterName}
   region: ${data.awsRegion}
 
-nodeGroups:
-  - name: ${data.nodeGroupName}
-    instanceType: ${data.instanceType}
-    desiredCapacity: ${data.desiredCapacity}
-    minSize: ${data.minSize}
-    maxSize: ${data.maxSize}
-    privateNetworking: ${data.privateNetworking}
-    volumeSize: ${data.volumeSize}
-    volumeType: ${data.volumeType}${labelsYaml}
-    
-    iam:
-      withAddonPolicies:
-        imageBuilder: true
-        autoScaler: true
-        externalDNS: true
-        certManager: true
-        awsLoadBalancerController: true
-        ebs: true
-        efs: true
-        cloudWatch: true${addonsSection}
-
-# Managed policies for the cluster
 managedNodeGroups:
   - name: ${data.nodeGroupName}
     instanceType: ${data.instanceType}
@@ -507,10 +487,7 @@ managedNodeGroups:
     maxSize: ${data.maxSize}
     privateNetworking: ${data.privateNetworking}
     volumeSize: ${data.volumeSize}
-    volumeType: ${data.volumeType}
-    releaseVersion: ""
-    ami: auto
-    amiFamily: AmazonLinux2${labelsYaml}
+    volumeType: ${data.volumeType}${labelsYaml}
     tags:
       Environment: production
       ManagedBy: eksctl
@@ -520,10 +497,10 @@ managedNodeGroups:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore`;
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore${addonsSection}`;
         }
 
-        // storage class configuration
+        // Generate storage class configuration
         function generateStorageClass(data) {
             return `# Storage Class for EBS volumes
 apiVersion: storage.k8s.io/v1
@@ -574,8 +551,7 @@ volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete`;
         }
 
-
-        //  generation function
+        // Main generation function
         function generateConfig() {
             const data = {
                 clusterName: document.getElementById('clusterName').value || 'my-eks-cluster',
@@ -607,20 +583,16 @@ reclaimPolicy: Delete`;
                 case 'storage-class':
                     output = generateStorageClass(data);
                     break;
-                case 'commands':
-                    output = generateCommands(data);
-                    break;
             }
 
             document.getElementById('yamlOutput').textContent = output;
         }
 
-        // Download 
+        // Download function - fixed to actually work
         function downloadConfig() {
             const clusterName = document.getElementById('clusterName').value || 'my-eks-cluster';
-            const templateType = document.getElementById('templateType').value;
             
-            //  all configurations
+            // Collect data once
             const data = {
                 clusterName: clusterName,
                 awsRegion: document.getElementById('awsRegion').value,
@@ -641,36 +613,43 @@ reclaimPolicy: Delete`;
                 }
             };
 
-            // Download
+            // Generate two files only
             const files = [
                 {
                     name: `${clusterName}-config.yaml`,
-                    content: generateEksctlConfig(data)
+                    content: generateEksctlConfig(data),
+                    type: 'text/yaml'
                 },
                 {
                     name: 'storage-classes.yaml',
-                    content: generateStorageClass(data)
-                },
-                {
-                    name: 'deployment-commands.sh',
-                    content: generateCommands(data)
+                    content: generateStorageClass(data),
+                    type: 'text/yaml'
                 }
             ];
 
-            files.forEach(file => {
-                const blob = new Blob([file.content], { type: file.name.endsWith('.sh') ? 'text/plain' : 'text/yaml' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = file.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+            // Download files with delay to avoid browser blocking
+            files.forEach((file, index) => {
+                setTimeout(() => {
+                    downloadFile(file.content, file.name, file.type);
+                }, index * 100); // 100ms delay between downloads
             });
         }
 
-        //  initial configuration
+        // Helper function to download individual files
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Generate initial configuration
         generateConfig();
     </script>
 </body>

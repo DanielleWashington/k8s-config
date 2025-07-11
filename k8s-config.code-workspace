@@ -1,0 +1,9 @@
+{
+	"folders": [
+		{
+			"name": "k8s-config",
+			"path": "."
+		}
+	],
+	"settings": {}
+}

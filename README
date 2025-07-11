@@ -1,0 +1,299 @@
+# EKS Cluster Configuration Generator POC
+
+> **Tbh...eksctl YAML configs are a mess.** I built this so you don't have to suffer through another copy-paste disaster. 
+
+![EKS](https://img.shields.io/badge/AWS-EKS-orange?style=flat-square&logo=amazon-aws)
+![Gomplate](https://img.shields.io/badge/Template-Gomplate-blue?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
+## 🚀 Why This Exists
+
+Look, we've all been there. It's 2 AM, you're trying to spin up an EKS cluster for a demo, and you're drowning in YAML syntax errors. The existing tools either assume you have a PhD in Kubernetes or they're so dumbed down they're useless for actual production workloads.
+
+So I built this. A clean web interface that generates **actually good** EKS configurations. No more Stack Overflow archaeology. No more "why is my node group not scaling" debugging sessions at midnight.
+
+### What You Actually Get
+
+- 🎯 **Smart defaults that work** - based ona blend of experience and documentation
+- 🔧 **Configurable without being overwhelming** - the options you need, not every possible flag
+- 📦 **Complete setup configurations** - cluster config and storage classes ready to deploy
+- 💡 **Modern AWS best practices** - private networking, proper IAM, current add-on versions
+- 🛠️ **Both GUI and CLI** - use what works for your workflow
+- 📄 **Clean YAML output** - properly formatted configurations you can actually use
+
+## ⚡ Get Started (Seriously, It's Fast)
+
+### Option 1: Web Interface (Perfect for Quick Setups)
+
+```bash
+# Grab the interface
+curl -O https://raw.githubusercontent.com/your-repo/eks-cluster-poc/main/index.html
+open index.html
+```
+
+Fill out the form, hit download, deploy with eksctl. That's it. Cluster ready in 20 minutes.
+
+### Option 2: Command Line (For the Automation Lovers)
+
+```bash
+git clone https://github.com/DanielleWashington/k8s-config.git
+cd k8s-config
+
+# Edit the config to match your needs
+cp configs/sample-cluster.yaml configs/my-cluster.yaml
+nano configs/my-cluster.yaml  # or vim, I don't judge
+
+# Generate everything
+./generate.sh configs/my-cluster.yaml
+
+# Deploy with eksctl
+cd generated
+eksctl create cluster -f my-cluster-config.yaml
+kubectl apply -f storage-classes.yaml
+```
+
+## 🛠️ What You Need Installed
+
+Don't worry, this isn't one of those projects with 50-11 dependencies. Just the essentials:
+
+**Required:**
+
+- AWS CLI (bestie, pls have creds that can actually create things)
+- eksctl 
+- kubectl (you probably already have this)
+
+**For CLI usage:**
+
+- gomplate (for the template magic)
+- yq (YAML processing that actually works)
+
+### Quick Install
+
+**macOS:**
+```bash
+brew install awscli eksctl kubectl gomplate yq
+```
+
+**Linux:**
+```bash
+# AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip && sudo ./aws/install
+
+# eksctl
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# gomplate & yq (for CLI usage)
+curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v3.11.7/gomplate_linux-amd64 -o gomplate
+chmod +x gomplate && sudo mv gomplate /usr/local/bin/
+sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+sudo chmod +x /usr/local/bin/yq
+```
+
+**Set up AWS:**
+```bash
+aws configure
+# You know the drill - access key, secret, region, json
+```
+
+## 📁 How It's Organized
+
+```
+k8s-config/
+├── index.html                     # The web interface
+├── generate.sh                    # CLI generation script
+├── README                             
+├── configs/
+│   └── sample-cluster.yaml        # Example config
+├── templates/                     # Gomplate templates
+│   ├── eksctl-config.yaml.tmpl    # Main cluster config
+│   └── storage-class.yaml.tmpl    # Storage setup
+└── generated/                     # Generated files go here
+```
+
+## ⚙️ Configuration Options
+
+### Core Cluster Settings
+
+- **Cluster Name** - keep it simple, keep it memorable
+- **AWS Region** - pick based on latency and compliance needs
+- **Node Group Name** - I usually go with `{env}-workers` or `{app}-nodes`
+
+### Node Group Config
+
+- **Instance Type** - starts at t3.medium, scales up based on workload
+- **Capacity Settings** - desired/min/max nodes (auto-scaling friendly)
+- **Storage** - volume size and type (gp3 is the sweet spot for most workloads)
+- **Networking** - private networking is default (as it should be)
+- **Labels** - for organization and cost tracking
+
+### Add-ons (The Important Stuff)
+
+- **VPC CNI** - container networking (always enable this)
+- **CoreDNS** - DNS resolution (also always enable)
+- **Kube Proxy** - network proxy (you need this)
+- **EBS CSI Driver** - persistent volumes
+
+## 💻 Real Example Config
+
+```yaml
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: <your-cluster-name>
+  region: <your-region>
+  version: "1.31"
+  
+managedNodeGroups:
+  - name: node-group-name
+    labels: { role: worker }
+    instanceType: t3.large     # Choose your instance type
+    desiredCapacity: 3         # Number of nodes
+    minSize: 2                 # Minimum number of nodes for autoscaling
+    maxSize: 5                 # Maximum number of nodes for autoscaling
+    privateNetworking: true    # Use private networking
+    volumeSize: 80             # Root volume size in GB
+    volumeType: gp3            # Root volume type
+
+addons:
+  - name: vpc-cni
+    version: latest
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true   # Enable EBS CSI driver
+```
+
+## 📦 What Gets Generated
+
+### 1. `{cluster-name}-config.yaml`
+
+Complete `eksctl` configuration with:
+
+- Properly configured managed node groups
+- IAM roles and policies that actually work
+- Add-ons with current versions
+
+### 2. `storage-classes.yaml`
+
+Three storage classes for different needs:
+
+- **gp3-storage** - general purpose, set as default
+- **gp3-high-performance** - when you need more IOPS
+- **io1-storage** - for workloads that demand the best
+
+### Deployment
+
+Use the generated files with standard eksctl commands:
+```bash
+eksctl create cluster -f my-cluster-config.yaml
+kubectl apply -f storage-classes.yaml
+```
+
+## ✅ Verify Everything Works
+
+After deployment:
+
+```bash
+# Basic cluster health
+kubectl get nodes
+kubectl get pods -A
+
+# Check your storage classes
+kubectl get storageclass
+```
+
+## 🔧 Houston, we have a problem: What to do when things go wrong
+
+### You've Got AWS permissions issues
+
+```bash
+# Check your identity
+aws sts get-caller-identity
+
+# Verify EKS permissions
+aws eks list-clusters
+```
+
+Common IAM permissions needed:
+- `AmazonEKSClusterPolicy`
+- `AmazonEKSWorkerNodePolicy` 
+- `AmazonEKS_CNI_Policy`
+- `AmazonEC2ContainerRegistryReadOnly`
+
+### You've got a cluster stuck in its creation era
+
+*not very demure*
+
+- EKS clusters take about 15-20 minutes (grab a matcha)
+- Check the CloudFormation console for detailed status
+- Verify EC2 service limits in your region
+
+### You've got template generation errors
+
+```bash
+# Verify tools are installed
+gomplate --version
+yq --version
+
+# Check YAML syntax
+yq eval . configs/your-config.yaml
+```
+
+### Useful Commands for Later
+
+```bash
+# Update kubeconfig
+aws eks update-kubeconfig --region us-east-1 --name your-cluster
+
+# Scale your node group
+eksctl scale nodegroup --cluster=<your-cluster-name> --nodes=6 --name=<node-group-name>
+
+# Get cluster info
+eksctl get cluster
+kubectl cluster-info
+
+# Delete cluster (careful with this one)
+eksctl delete cluster --name=<your-cluster-name> --region=<us-east-1>
+```
+
+## 📄 License
+
+MIT License - use it, modify it, make it better.
+
+## 🙏 Credits
+
+- **[eksctl](https://eksctl.io/)** - the best EKS management tool
+- **[Gomplate](https://docs.gomplate.ca/)** - a template engine that doesn't suck
+- **[AWS EKS](https://aws.amazon.com/eks/)** - managed Kubernetes done right
+
+## 💬 Questions?
+
+1. Check the troubleshooting section first
+2. AWS EKS docs: https://docs.aws.amazon.com/eks/
+3. eksctl docs: https://eksctl.io/
+4. Open an issue if you're still stuck
+
+---
+
+**TL;DR:**
+1. Install AWS CLI, eksctl, kubectl ✓
+2. Use web interface OR edit config file ✓  
+3. Generate with `./generate.sh` ✓
+4. Deploy with `eksctl create cluster -f config.yaml` ✓
+5. Apply storage classes with `kubectl apply -f storage-classes.yaml` ✓
+6. Wait 20 minutes ✓
+7. Start shipping features ✓
+
+**This tool exists because good infrastructure shouldn't be hard.** Now let's build something awesome. 🚀
