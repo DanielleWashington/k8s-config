@@ -43,7 +43,7 @@ st.markdown("""
 # Header
 st.markdown("""
 <div class="main-header">
-    <h1>🚀 EWeaviate EKS Cluster Generator</h1>
+    <h1>🚀 Weaviate EKS Cluster Generator</h1>
     <p>Generate an EKS configuration for your Weaviate deployment</p>
 </div>
 """, unsafe_allow_html=True)
